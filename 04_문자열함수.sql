@@ -78,8 +78,8 @@ FROM dual;
 /*
 문제 1.
 EMPLOYEES 테이블에서 이름, 입사일자 컬럼으로 변경해서 이름순으로 오름차순 출력 합니다.
-조건 1) 이름 컬럼은 first_name, last_name을 붙여서 출력합니다.
-조건 2) 입사일자 컬럼은 xx/xx/xx로 저장되어 있습니다. xxxxxx형태로 변경해서 출력합니다.
+조건 1) 이름 컬럼은 first_name, last_name을 붙여서 출력합니다.(concat)
+조건 2) 입사일자 컬럼은 xx/xx/xx로 저장되어 있습니다. xxxxxx형태로 변경해서 출력합니다.(replace)
 */
 SELECT
     CONCAT(first_name,last_name) AS 이름 ,
