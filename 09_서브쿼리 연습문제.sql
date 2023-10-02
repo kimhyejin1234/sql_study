@@ -1,3 +1,4 @@
+
 /*
 문제 1.
 -EMPLOYEES 테이블에서 모든 사원들의 평균급여보다 높은 사원들의 데이터를 출력 하세요 
@@ -209,6 +210,17 @@ SELECT
 FROM employees e
 WHERE e.job_id = 'SA_MAN' ;
 
+SELECT 
+    tb1.*,d.department_name
+FROM
+    (
+    SELECT  
+        e.last_name,e.job_id,e.department_id
+    FROM employees e
+    WHERE e.job_id = 'SA_MAN' 
+    ) tb1
+JOIN  departments d
+ON tb1.department_id = d.department_id;
 /*
 문제 14
 --DEPARTMENT테이블에서 각 부서의 ID, NAME, MANAGER_ID와 부서에 속한 인원수를 출력하세요.
@@ -224,7 +236,19 @@ FROM
      FROM departments d    
     ) 
 WHERE 인원수 > 0
-ORDER BY 인원수;
+ORDER BY 인원수 DESC;
+
+SELECT
+    d.department_id,d.department_name,d.manager_id,
+    a.total
+FROM departments d
+JOIN
+           (SELECT department_id, COUNT(*) AS total
+            FROM employees 
+            GROUP BY department_id
+           ) a 
+ON d.department_id = a.department_id
+ORDER BY a.total DESC;
 
 /*
 문제 15
@@ -232,7 +256,7 @@ ORDER BY 인원수;
 --부서별 평균이 없으면 0으로 출력하세요.
 */
 CREATE OR REPLACE VIEW emp_temp AS (
-    SELECT department_id,AVG(salary)  AS avg_salary
+    SELECT department_id,TRUNC(AVG(salary),0)  AS avg_salary
     FROM employees
     GROUP BY department_id
 ) WITH READ ONLY;
@@ -240,15 +264,29 @@ CREATE OR REPLACE VIEW emp_temp AS (
 SELECT 
     d.* , 
     loc.street_address,loc.postal_code,
-    NVL2(emp.avg_salary,avg_salary,0)
+    NVL(emp.avg_salary,0)
 FROM departments d
 LEFT JOIN locations loc
 ON d.location_id = loc.location_id
 LEFT JOIN emp_temp emp
 ON d.department_id = emp.department_id;
 
-
-
+SELECT
+    d.*,
+    loc.street_address,loc.postal_code,
+    NVL(tbl.result,0) AS 부서별평균급여
+FROM departments d
+JOIN locations loc
+ON d.location_id = loc.location_id
+LEFT JOIN
+    (
+    SELECT 
+        department_id,
+        TRUNC(AVG(salary),0) AS result
+    FROM employees
+    GROUP BY department_id
+    ) tbl
+ON d.department_id = tbl.department_id;
 
 /*
 문제 16
@@ -272,6 +310,32 @@ FROM (
             ) tab1
      )
 WHERE rownum BETWEEN 1 AND 10;
+
+SELECT *
+FROM (
+    SELECT ROWNUM AS rn,tbl2.*
+        FROM
+        (
+        SELECT
+            d.*,
+            loc.street_address,loc.postal_code,
+            NVL(tbl.result,0) AS 부서별평균급여
+        FROM departments d
+        JOIN locations loc
+        ON d.location_id = loc.location_id
+        LEFT JOIN
+            (
+            SELECT 
+                department_id,
+                TRUNC(AVG(salary),0) AS result
+            FROM employees
+            GROUP BY department_id
+            ) tbl
+        ON d.department_id = tbl.department_id
+        ORDER BY d.department_id DESC
+        ) tbl2
+    )
+WHERE rn >0 AND rn <= 10;    
 
 --DROP VIEW emp_temp;
 
