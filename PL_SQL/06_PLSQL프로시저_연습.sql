@@ -128,12 +128,33 @@ employee_id를 입력받아 employees에 존재하면,
 근속년수를 out하는 프로시저를 작성하세요. (익명블록에서 프로시저를 실행)
 없다면 exception처리하세요
 */
-CREATE OR REPLACE PROCEDURE emp_test
+CREATE OR REPLACE PROCEDURE emp_test_proc
     ( p_emp_id IN employees.employee_id%TYPE,
       p_result OUT NUMBER )
-IS v_result NUMBER := 0
+IS 
+    v_result NUMBER := 0;
 BEGIN
-    SELECT 
+    SELECT TRUNC((sysdate - hire_date) / 365)
+    INTO v_result
+    FROM employees
+    WHERE employee_id = p_emp_id;
+    p_result := v_result;
+
+    EXCEPTION WHEN OTHERS THEN
+        dbms_output.put_line('존재하지 않는 사번 입니다.');
+        dbms_output.put_line('ERROR MSG: ' || SQLERRM);
+        ROLLBACK;    
+END;
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+    v_year NUMBER;
+BEGIN
+    emp_test_proc(999,v_year);
+    IF v_year > 0 THEN
+    DBMS_OUTPUT.put_line(v_year || '년');
+    END IF;
 END;
 
 /*
@@ -147,3 +168,33 @@ employee_id, last_name, email, hire_date, job_id를 입력받아
 병합시킬 데이터 -> 프로시저로 전달받은 employee_id를 dual에 select 때려서 비교.
 프로시저가 전달받아야 할 값: 사번, last_name, email, hire_date, job_id
 */
+CREATE OR REPLACE PROCEDURE new_emp_proc(
+    p_emp_id IN emps.employee_id%TYPE,
+    p_last_name IN emps.last_name%TYPE,
+    p_email IN emps.email%TYPE,
+    p_hire_date IN emps.hire_date%TYPE,
+    p_job_id IN emps.job_id%TYPE
+)
+IS
+BEGIN
+    MERGE INTO emps a --머지를 할 타겟 테이블
+    USING
+        (SELECT p_emp_id as employee_id FROM dual) b
+    ON
+        (a.employee_id = b.employee_id) --전달받은 사번이 EMPS 에 존재하는지를 병합 조건으로 물어봄.
+    WHEN MATCHED THEN
+        UPDATE  SET
+             a.last_name = p_last_name,
+             a.email = p_email,
+             a.hire_date = p_hire_date,
+             a.job_id = p_job_id
+    
+    WHEN NOT MATCHED THEN    
+        INSERT (a.employee_id,a.last_name,a.email,a.hire_date,a.job_id)
+        VALUES (p_emp_id,p_last_name,p_email,p_hire_date,p_job_id);
+END;
+
+EXEC new_emp_proc(300,'park','park5432',sysdate,'test111');
+SELECT * FROM emps ORDER BY employee_id;
+
+
